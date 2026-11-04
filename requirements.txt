@@ -1,0 +1,20 @@
+# Hinger Game with Sign Language — CMP-5058A coursework
+# Python 3.12 (conda env: AI-CW)
+# Install with: pip install -r requirements.txt
+
+# Part 2: hand landmark extraction + camera
+mediapipe
+numpy<2
+opencv-python
+
+# Part 2: data analysis, training, evaluation
+pandas
+scikit-learn
+joblib
+
+# Plots (Part 1 and Part 2)
+matplotlib
+seaborn
+
+# Optional: Part 1 game GUI (Task 3 extension)
+pygame
