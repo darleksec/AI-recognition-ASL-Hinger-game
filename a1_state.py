@@ -215,24 +215,24 @@ def tester():
     print("Hingers in s1 (expected 2):", sa.numHingers())
 
     #Alice plays Y at (4,4): cost 2, no bonus
-    print("Cost of 'Y' (expected 2):", sa.cost('Y'))
+    print("Cost of Y (expected 2):", sa.cost('Y'))
     print("Is (4,4) a hinger (expected False):", sa.is_hinger(4, 4))
     sa.move('Y')
-    print("State s2 after 'Y':")
+    print("State s2 after Y:")
     print(sa)
 
     #Bob plays M at (2,2): cost 3, bonus 100 because it is a hinger
-    print("Cost of 'M' (expected 3):", sa.cost('M'))
+    print("Cost of M (expected 3):", sa.cost('M'))
     print("Is (2,2) a hinger (expected True):", sa.is_hinger(2, 2))
     sa.move('M')
-    print("State s3 after 'M':")
+    print("State s3 after M:")
     print(sa)
     print("Regions in s3 (expected 3):", sa.numRegions())
 
     #The illegal moves have to be rejected and shouldn't change the board
-    print("Move on empty cell 'M' (expected False):", sa.move('M'))
-    print("Move 'Z' on the board (expected False):", sa.move('Z'))
-    print("Move '?' (expected False):", sa.move('?'))
+    print("Move on empty cell M (expected False):", sa.move('M'))
+    print("Move Z on the board (expected False):", sa.move('Z'))
+    print("Move ? (expected False):", sa.move('?'))
 
     #If a cell has 2 counters and is active it can't be a hinger
     sb = State([[0, 0, 0, 0, 0],
@@ -245,7 +245,7 @@ def tester():
     print("Hingers in sb (expected 0):", sb.numHingers())
     #H is at position (1,2) and it holds 1 counter 
     sb.move('H')
-    print("Hingers in sb after 'H' (expected 1):", sb.numHingers())
+    print("Hingers in sb after H (expected 1):", sb.numHingers())
 
     #The successors() make one state for each active cell
     print("Successors of sb (expected 3):")
