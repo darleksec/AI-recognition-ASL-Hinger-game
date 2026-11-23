@@ -143,7 +143,7 @@ class State:
         if not self.is_legal(letter):
             return False
         row, col = self.letter_to_cell(letter)
-        #This takes away a counter from the chosen cell unless the person chose Z which ends the game 
+        #This takes away a counter from the chosen cell (unless the person chooses Z which is handled in the game loop). 
         self.grid[row][col] -= 1
         return True
 

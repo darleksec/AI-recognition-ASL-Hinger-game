@@ -39,11 +39,11 @@ class Agent:
         self.name = name
         #The playing strategies this agent can use
         self.modes = ['minimax', 'alphabeta', 'mcts']
-        self.depth = 3
+        self.search_depth = 3
         #Number of states examined in the last search
-        self.nodes = 0
+        self.nodes_count = 0
         #Number of simulations MCTS runs for each move
-        self.iterations = 300
+        self.mtcs_runs = 300
 
     # -------------------------------------------------------------------
     # Task 2.2: String representation of the agent
@@ -63,9 +63,9 @@ class Agent:
             return None
 
         if mode == 'minimax':
-            return self.minimax_move(state)
+            return self.best_minimax_move(state)
         if mode == 'alphabeta':
-            return self.alphabeta_move(state)
+            return self.best_alphabeta_move(state)
         return self.mcts_move(state)
 
     # -------------------------------------------------------------------
@@ -73,33 +73,33 @@ class Agent:
     # -------------------------------------------------------------------
 
     #This works out how many points a move is worth to the player making it
-    def move_gain(self, state, letter):
+    def move_value(self, state, letter):
         row, col = state.letter_to_cell(letter)
-        bonus = 0
+        hinger_bonus = 0
             #100 bonus if the cell is a hinger minus the cost of the move
         if state.is_hinger(row, col):
-            bonus = 100
-        return bonus - state.cost(letter)
+            hinger_bonus = 100
+        return hinger_bonus - state.cost(letter)
 
     #Minimax score is agent's points - opponent's points
     #The agent tries to make it as big as possible and the opponent as small as possible
-    def minimax(self, state, depth, maximizing, score):
-        self.nodes += 1
+    def minimax(self, state, depth, max_turn, score):
+        self.nodes_count += 1
 
         #Stops when the depth limit is reached or if there are no counters left
         if depth == 0 or state.is_game_over():
             return score
 
-        if maximizing:
+        if max_turn:
             #The agent starts with the lowest possible value
             best_score = -float('inf')
             for letter in state.legal_moves():
-                gain = self.move_gain(state, letter)
+                point_gain = self.move_value(state, letter)
                 #Copies the board so the move can be tried without changing the original
                 new_state = state.state_clone()
                 new_state.move(letter)
                 #The agent's points are added then it's the opponent's turn
-                value = self.minimax(new_state, depth - 1, False, score + gain)
+                value = self.minimax(new_state, depth - 1, False, score + point_gain)
                 best_score = max(best_score, value)
             return best_score
 
@@ -107,25 +107,25 @@ class Agent:
             #The opponent starts with the highest possible value
             best_score = float('inf')
             for letter in state.legal_moves():
-                gain = self.move_gain(state, letter)
+                point_gain = self.move_value(state, letter)
                 new_state = state.state_clone()
                 new_state.move(letter)
-                #The opponent's points are taken awaya then it's the agent's turn
-                value = self.minimax(new_state, depth - 1, True, score - gain)
+                #The opponent's points are taken away then it's the agent's turn
+                value = self.minimax(new_state, depth - 1, True, score - point_gain)
                 best_score = min(best_score, value)
             return best_score
 
     #Tries every move at the top of the tree and returns the best one
-    def minimax_move(self, state):
-        self.nodes = 0
+    def best_minimax_move(self, state):
+        self.nodes_count = 0
         best_score = -float('inf')
         best_move = None
 
         for letter in state.legal_moves():
-            gain = self.move_gain(state, letter)
+            point_gain = self.move_value(state, letter)
             new_state = state.state_clone()
             new_state.move(letter)
-            value = self.minimax(new_state, self.depth - 1, False, gain)
+            value = self.minimax(new_state, self.search_depth - 1, False, point_gain)
             #This keeps the move with the highest value
             if value > best_score:
                 best_score = value
@@ -136,19 +136,19 @@ class Agent:
 
     #alpha is the best value the agent is guaranteed so far
     #beta is the best value the opponent is guaranteed so far
-    def alphabeta(self, state, depth, alpha, beta, maximizing, score):
-        self.nodes += 1
+    def alphabeta(self, state, depth, alpha, beta, max_turn, score):
+        self.nodes_count += 1
 
         if depth == 0 or state.is_game_over():
             return score
 
-        if maximizing:
+        if max_turn:
             best_score = -float('inf')
             for letter in state.legal_moves():
-                gain = self.move_gain(state, letter)
+                point_gain = self.move_value(state, letter)
                 new_state = state.state_clone()
                 new_state.move(letter)
-                value = self.alphabeta(new_state, depth - 1, alpha, beta, False, score + gain)
+                value = self.alphabeta(new_state, depth - 1, alpha, beta, False, score + point_gain)
                 best_score = max(best_score, value)
                 #Updates the best value the agent can guarantee
                 alpha = max(alpha, best_score)
@@ -159,10 +159,10 @@ class Agent:
         else:
             best_score = float('inf')
             for letter in state.legal_moves():
-                gain = self.move_gain(state, letter)
+                point_gain = self.move_value(state, letter)
                 new_state = state.state_clone()
                 new_state.move(letter)
-                value = self.alphabeta(new_state, depth - 1, alpha, beta, True, score - gain)
+                value = self.alphabeta(new_state, depth - 1, alpha, beta, True, score - point_gain)
                 best_score = min(best_score, value)
                 #Updates the best value the opponent can guarantee
                 beta = min(beta, best_score)
@@ -171,18 +171,18 @@ class Agent:
             return best_score
 
     #Tries every move at the top of the tree and returns the best one using alpha-beta
-    def alphabeta_move(self, state):
-        self.nodes = 0
+    def best_alphabeta_move(self, state):
+        self.nodes_count = 0
         best_score = -float('inf')
         best_move = None
         alpha = -float('inf')
         beta = float('inf')
 
         for letter in state.legal_moves():
-            gain = self.move_gain(state, letter)
+            point_gain = self.move_value(state, letter)
             new_state = state.state_clone()
             new_state.move(letter)
-            value = self.alphabeta(new_state, self.depth - 1, alpha, beta, False, gain)
+            value = self.alphabeta(new_state, self.search_depth - 1, alpha, beta, False, point_gain)
             if value > best_score:
                 best_score = value
                 best_move = letter
@@ -200,29 +200,29 @@ class Agent:
         best_value = -float('inf')
         best_child = None
         for child in node.children:
-            average = child.wins / child.visits
+            avg_child_result = child.wins / child.visits
             #When it's the opponent's turn the opponent picks what is worst for the agent
             if not node.agent_turn:
-                average = 1 - average
+                avg_child_result = 1 - avg_child_result
             explore = math.sqrt(2) * math.sqrt(math.log(node.visits) / child.visits)
-            if average + explore > best_value:
-                best_value = average + explore
+            if avg_child_result + explore > best_value:
+                best_value = avg_child_result + explore
                 best_child = child
         return best_child
 
     #Plays random moves until the board is empty and returns the result for the agent, 1 = win, 0.5 = draw and 0 = loss
-    def rollout(self, node):
+    def random_move(self, node):
         state = node.state.state_clone()
         agent_turn = node.agent_turn
         score = node.score
 
         while not state.is_game_over():
             letter = random.choice(state.legal_moves())
-            gain = self.move_gain(state, letter)
+            point_gain = self.move_value(state, letter)
             if agent_turn:
-                score += gain
+                score += point_gain
             else:
-                score -= gain
+                score -= point_gain
             state.move(letter)
             agent_turn = not agent_turn
 
@@ -234,10 +234,10 @@ class Agent:
 
     #Runs the four MCTS steps multiple times and returns the most visited move
     def mcts_move(self, state):
-        root = Node(state.state_clone())
+        root_node = Node(state.state_clone())
 
-        for _ in range(self.iterations):
-            node = root
+        for _ in range(self.mtcs_runs):
+            node = root_node
 
             #SELECTION: goes down the tree while every move has been tried
             while not node.untried and node.children:
@@ -247,11 +247,11 @@ class Agent:
             if node.untried:
                 letter = random.choice(node.untried)
                 node.untried.remove(letter)
-                gain = self.move_gain(node.state, letter)
+                point_gain = self.move_value(node.state, letter)
                 if node.agent_turn:
-                    score = node.score + gain
+                    score = node.score + point_gain
                 else:
-                    score = node.score - gain
+                    score = node.score - point_gain
                 new_state = node.state.state_clone()
                 new_state.move(letter)
                 child = Node(new_state, node, letter, not node.agent_turn, score)
@@ -259,7 +259,7 @@ class Agent:
                 node = child
 
             #SIMULATION: plays the rest of the game randomly
-            result = self.rollout(node)
+            result = self.random_move(node)
 
             #BACKPROPGATION: updates every node on the path back to the root
             while node is not None:
@@ -268,7 +268,7 @@ class Agent:
                 node = node.parent
 
         #The move that was explored the most is the most reliable choice
-        best_child = max(root.children, key=lambda child: child.visits)
+        best_child = max(root_node.children, key=lambda child: child.visits)
         return best_child.letter
 
 
@@ -285,28 +285,28 @@ def tester():
 
     print(Agent('Bob'))
 
-    sa = State([[1, 1, 0, 0, 1],
+    sample_board = State([[1, 1, 0, 0, 1],
                 [1, 1, 0, 0, 0],
                 [0, 0, 1, 1, 1],
                 [0, 0, 0, 1, 1],
                 [0, 0, 0, 0, 1]])
     print("State s1:")
-    print(sa)
+    print(sample_board)
 
     #Minimax and alpha-beta should choose the same move but alpha-beta should examine less states and take less time
     for mode in ['minimax', 'alphabeta']:
         start_time = time.perf_counter()
-        move = agent.next_move(sa, mode)
+        move = agent.next_move(sample_board, mode)
         end_time = time.perf_counter()
         print(f"{mode}: move {move}, states examined {agent.nodes}, "
-              f"time {end_time - start_time:.4f} s, legal {sa.is_legal(move)}")
+              f"time {end_time - start_time:.4f} s, legal {sample_board.is_legal(move)}")
 
-    move = agent.next_move(sa, 'mcts')
-    print("mcts: move", move, "legal (expected True):", sa.is_legal(move))
+    move = agent.next_move(sample_board, 'mcts')
+    print("mcts: move", move, "legal (expected True):", sample_board.is_legal(move))
 
     #Searching shouldn't change the board
     print("Board unchanged after searching (expected True):",
-          sa == State([[1, 1, 0, 0, 1],
+          sample_board == State([[1, 1, 0, 0, 1],
                        [1, 1, 0, 0, 0],
                        [0, 0, 1, 1, 1],
                        [0, 0, 0, 1, 1],
@@ -314,33 +314,33 @@ def tester():
 
     #If a hinger is available the agent should take the 100 point bonus
     #The middle cell H is the only hinger
-    sb = State([[0, 0, 0, 0, 0],
+    hinger_board = State([[0, 0, 0, 0, 0],
                 [0, 1, 1, 1, 0],
                 [0, 0, 0, 0, 0],
                 [0, 0, 0, 0, 0],
                 [0, 0, 0, 0, 0]])
-    print("State sb:")
-    print(sb)
+    print("State hinger_board:")
+    print(hinger_board)
     for mode in agent.modes:
-        print(f"{mode} move on sb (expected H):", agent.next_move(sb, mode))
+        print(f"{mode} move on hinger board (expected H):", agent.next_move(hinger_board, mode))
 
     #the agent has to play it as there is only 1 counter left 
-    sc = State([[0, 0, 0, 0, 0],
+    last_counter = State([[0, 0, 0, 0, 0],
                 [0, 0, 0, 0, 0],
                 [0, 0, 0, 0, 0],
                 [0, 0, 0, 0, 0],
                 [0, 0, 0, 0, 1]])
-    print("Only move on sc (expected Y):", agent.next_move(sc))
+    print("Only move on last counter (expected Y):", agent.next_move(last_counter))
 
     #No moves are possible as there are no active cells 
-    empty = State([[0] * 5 for _ in range(5)])
-    print("Move on empty board (expected None):", agent.next_move(empty))
+    empty_board = State([[0] * 5 for _ in range(5)])
+    print("Move on empty board (expected None):", agent.next_move(empty_board))
 
     # Full board: shows how much alpha-beta saves compared with minimax
-    full = State([[1] * 5 for _ in range(5)])
+    full_board = State([[1] * 5 for _ in range(5)])
     for mode in ['minimax', 'alphabeta']:
         start_time = time.perf_counter()
-        move = agent.next_move(full, mode)
+        move = agent.next_move(full_board, mode)
         end_time = time.perf_counter()
         print(f"Full board {mode}: move {move}, states examined {agent.nodes}, "
               f"time {end_time - start_time:.4f} s")
