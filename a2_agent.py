@@ -21,7 +21,7 @@ class Node:
 
     def __init__(self, state, parent=None, letter=None, agent_turn=True, score=0):
         self.state = state              #State of the board 
-        self.parent = parent            #This is the node this one was reached from
+        self.parent = parent            #This is the previous position in the tree, it passes the simulation results back up
         self.letter = letter            #This is the move that led to this node
         self.agent_turn = agent_turn    #If it is the agents turn then it will be true
         self.score = score              #the score is the agent score minus the opponent score so far 
@@ -42,7 +42,7 @@ class Agent:
         self.search_depth = 3
         #Number of states examined in the last search
         self.nodes_count = 0
-        #Number of simulations MCTS runs for each move
+        #Number of simulations Monte Carlo runs for each move
         self.mtcs_runs = 300
 
     # -------------------------------------------------------------------
@@ -76,7 +76,7 @@ class Agent:
     def move_value(self, state, letter):
         row, col = state.letter_to_cell(letter)
         hinger_bonus = 0
-            #100 bonus if the cell is a hinger minus the cost of the move
+            #player gets a 100 point bonus if the cell is a hinger minus the points of the move
         if state.is_hinger(row, col):
             hinger_bonus = 100
         return hinger_bonus - state.cost(letter)
@@ -203,6 +203,7 @@ class Agent:
             avg_child_result = child.wins / child.visits
             #When it's the opponent's turn the opponent picks what is worst for the agent
             if not node.agent_turn:
+                #the average looks at how well this move has done so far and favours moves that have won
                 avg_child_result = 1 - avg_child_result
             explore = math.sqrt(2) * math.sqrt(math.log(node.visits) / child.visits)
             if avg_child_result + explore > best_value:
@@ -210,7 +211,10 @@ class Agent:
                 best_child = child
         return best_child
 
-    #Plays random moves until the board is empty and returns the result for the agent, 1 = win, 0.5 = draw and 0 = loss
+    #Plays random moves until the board is empty and returns the result for the agent
+    #1 = win
+    #0.5 = draw 
+    #0 = loss
     def random_move(self, node):
         state = node.state.state_clone()
         agent_turn = node.agent_turn
@@ -232,7 +236,7 @@ class Agent:
             return 0.5
         return 0
 
-    #Runs the four MCTS steps multiple times and returns the most visited move
+    #Runs the four monte carlo steps multiple times and returns the most visited move
     def mcts_move(self, state):
         root_node = Node(state.state_clone())
 
@@ -298,7 +302,7 @@ def tester():
         start_time = time.perf_counter()
         move = agent.next_move(sample_board, mode)
         end_time = time.perf_counter()
-        print(f"{mode}: move {move}, states examined {agent.nodes}, "
+        print(f"{mode}: move {move}, states examined {agent.nodes_count}, "
               f"time {end_time - start_time:.4f} s, legal {sample_board.is_legal(move)}")
 
     move = agent.next_move(sample_board, 'mcts')
@@ -336,13 +340,13 @@ def tester():
     empty_board = State([[0] * 5 for _ in range(5)])
     print("Move on empty board (expected None):", agent.next_move(empty_board))
 
-    # Full board: shows how much alpha-beta saves compared with minimax
+    # Full board: shows how much time alpha-beta saves compared with minimax
     full_board = State([[1] * 5 for _ in range(5)])
     for mode in ['minimax', 'alphabeta']:
         start_time = time.perf_counter()
         move = agent.next_move(full_board, mode)
         end_time = time.perf_counter()
-        print(f"Full board {mode}: move {move}, states examined {agent.nodes}, "
+        print(f"Full board {mode}: move {move}, states examined {agent.nodes_count}, "
               f"time {end_time - start_time:.4f} s")
 
 
