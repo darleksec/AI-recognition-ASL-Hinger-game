@@ -31,7 +31,7 @@ def play(state, agentA, agentB):
             names.append(agents[i].name)
 
     # Both players start with 100 points
-    scores = [100, 100]
+    players_scores = [100, 100]
 
     # agentA moves first so the turn starts at index 0
     turn = 0
@@ -43,7 +43,7 @@ def play(state, agentA, agentB):
     while not state.is_game_over():
         current_agent = agents[turn]
         # The other player is always the opposite index (0 -> 1, 1 -> 0)
-        other = 1 - turn
+        opponent_index = 1 - turn
         print(f"{names[turn]}'s turn")
 
         # A human types their move and an agent works it out itself
@@ -60,8 +60,8 @@ def play(state, agentA, agentB):
         # ---------------------------------------------------------------
         if move == 'Z':
             print(f"{names[turn]} declared the end of the game with Z and loses.")
-            print(f"{names[other]} wins with {scores[other]} points.")
-            return names[other], scores[other]
+            print(f"{names[opponent_index]} wins with {players_scores[opponent_index]} points.")
+            return names[opponent_index], players_scores[opponent_index]
 
         # ---------------------------------------------------------------
         # Task 3.3: Illegal moves - an empty cell, a cell that doesn't
@@ -70,40 +70,40 @@ def play(state, agentA, agentB):
         # ---------------------------------------------------------------
         if not state.is_legal(move):
             print(f"{move} is an illegal move, so {names[turn]} loses.")
-            print(f"{names[other]} wins with {scores[other]} points.")
-            return names[other], scores[other]
+            print(f"{names[opponent_index]} wins with {players_scores[opponent_index]} points.")
+            return names[opponent_index], players_scores[opponent_index]
 
         # The cost and hinger bonus are worked out BEFORE the move is made
         # because the brief says they are taken at the time of the move
         row, col = state.letter_to_cell(move)
-        cost = state.cost(move)
-        bonus = 0
+        move_cost = state.cost(move)
+        hinger_bonus = 0
         if state.is_hinger(row, col):
-            bonus = 100
-        scores[turn] = scores[turn] - cost + bonus
+            hinger_bonus = 100
+        players_scores[turn] = players_scores[turn] - move_cost + hinger_bonus
 
         # Now the counter is actually removed from the board
         state.move(move)
 
-        print(f"Cost: {cost}, hinger bonus: {bonus}")
-        print(f"Scores: {names[0]} = {scores[0]}, {names[1]} = {scores[1]}")
+        print(f"Cost: {move_cost}, hinger bonus: {hinger_bonus}")
+        print(f"Scores: {names[0]} = {players_scores[0]}, {names[1]} = {players_scores[1]}")
         print(state)
 
         # Switch to the other player
-        turn = other
+        turn = opponent_index
 
     # -------------------------------------------------------------------
     # Task 3.2: The game is over because all counters have been removed
     # The player with the higher score wins, equal scores is a draw
     # -------------------------------------------------------------------
     print("All counters have been removed.")
-    print(f"Final scores: {names[0]} = {scores[0]}, {names[1]} = {scores[1]}")
-    if scores[0] > scores[1]:
+    print(f"Final scores: {names[0]} = {players_scores[0]}, {names[1]} = {players_scores[1]}")
+    if players_scores[0] > players_scores[1]:
         print(f"{names[0]} wins.")
-        return names[0], scores[0]
-    if scores[1] > scores[0]:
+        return names[0], players_scores[0]
+    if players_scores[1] > players_scores[0]:
         print(f"{names[1]} wins.")
-        return names[1], scores[1]
+        return names[1], players_scores[1]
     print("The game is a draw.")
     return None
 
@@ -115,7 +115,7 @@ def tester():
 
     # This is a small fake player that plays a fixed list of moves in order
     # It lets us force illegal moves, Z, and exact move sequences
-    class ScriptedPlayer:
+    class TestPlayer:
         def __init__(self, name, moves):
             self.name = name
             self.moves = moves
@@ -140,30 +140,30 @@ def tester():
 
     # 2. Playing on an empty cell - C is (0,2) which is 0 in s1
     print("=== Test 2: Illegal move on an empty cell ===")
-    result = play(make_s1(), ScriptedPlayer('Cheater', ['C']), Agent('Bob'))
+    result = play(make_s1(), TestPlayer('Cheater', ['C']), Agent('Bob'))
     print("Illegal move (expected winner Bob):", result)
     print()
 
     # 3. Playing a letter that isn't on the board
     print("=== Test 3: Invalid letter ===")
-    result = play(make_s1(), ScriptedPlayer('Cheater', ['?']), Agent('Bob'))
+    result = play(make_s1(), TestPlayer('Cheater', ['?']), Agent('Bob'))
     print("Invalid letter (expected winner Bob):", result)
     print()
 
     # 4. Declaring Z - B15 moves first, then the stub plays Z and loses
     print("=== Test 4: Player declares Z ===")
-    result = play(make_s1(), Agent(), ScriptedPlayer('Quitter', ['Z']))
+    result = play(make_s1(), Agent(), TestPlayer('Quitter', ['Z']))
     print("Z declared (expected winner B15):", result)
     print()
 
     # 5. Draw - two isolated single counters, each costs 0 and neither is a hinger
     print("=== Test 5: Draw ===")
-    draw_state = State([[1, 0, 0, 0, 0],
+    draw_board = State([[1, 0, 0, 0, 0],
                         [0, 0, 0, 0, 0],
                         [0, 0, 0, 0, 0],
                         [0, 0, 0, 0, 0],
                         [0, 0, 0, 0, 1]])
-    result = play(draw_state, Agent(), Agent('Bob'))
+    result = play(draw_board, Agent(), Agent('Bob'))
     print("Draw (expected None):", result)
     print()
 
@@ -171,22 +171,22 @@ def tester():
     # Alice plays Y (cost 2, no bonus) so her score should be 100 - 2 = 98
     # Bob then plays Z so Alice wins and her score is returned
     print("=== Test 6a: Scoring for Y ===")
-    result = play(make_s1(), ScriptedPlayer('Alice', ['Y']),
-                  ScriptedPlayer('Bob', ['Z']))
+    result = play(make_s1(), TestPlayer('Alice', ['Y']),
+                  TestPlayer('Bob', ['Z']))
     print("Alice after Y (expected ('Alice', 98)):", result)
     print()
 
     # Alice plays Y, Bob plays M (cost 3, hinger +100) so Bob has 100 + 100 - 3 = 197
     # Alice then plays Z so Bob wins and his score is returned
     print("=== Test 6b: Scoring for M ===")
-    result = play(make_s1(), ScriptedPlayer('Alice', ['Y', 'Z']),
-                  ScriptedPlayer('Bob', ['M']))
+    result = play(make_s1(), TestPlayer('Alice', ['Y', 'Z']),
+                  TestPlayer('Bob', ['M']))
     print("Bob after M (expected ('Bob', 197)):", result)
     print()
 
     # 7. An agent that gives back None should lose, not crash the game
     print("=== Test 7: Agent returns None ===")
-    result = play(make_s1(), ScriptedPlayer('Broken', [None]), Agent('Bob'))
+    result = play(make_s1(), TestPlayer('Broken', [None]), Agent('Bob'))
     print("None move (expected winner Bob):", result)
 
 
